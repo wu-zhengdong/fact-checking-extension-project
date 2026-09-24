@@ -1,7 +1,7 @@
 # fact-checking-extension-project
 
 Analysis code for the manuscript *A randomized experiment of a simulated AI-attributed
-fact-checking interface for HPV vaccine information assessment in China*.
+fact-checking interface for HPV vaccine information*.
 
 ## Reproducing Table 2 and Supplementary Tables S2, S3, S4, S7 and S8
 
