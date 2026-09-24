@@ -1,5 +1,6 @@
 # Table 2. Information-assessment scores.
 # Participant-clustered linear GEE with exchangeable working correlation.
+# Standardized effects use the pooled baseline SD, as in the manuscript.
 
 library(dplyr)
 library(geepack)
@@ -103,6 +104,19 @@ gee_did <- function(df, outcome) {
 rows <- lapply(row_specs, function(spec) {
   v <- spec$var
   g <- gee_did(dat, v)
+  baseline_1 <- dat[[v]][dat$treatment == 1 & dat$time == 0]
+  baseline_0 <- dat[[v]][dat$treatment == 0 & dat$time == 0]
+  n1 <- length(baseline_1)
+  n0 <- length(baseline_0)
+  pooled_sd <- sqrt(((n1 - 1) * var(baseline_1) +
+                     (n0 - 1) * var(baseline_0)) / (n1 + n0 - 2))
+  if (!is.finite(pooled_sd) || pooled_sd <= 0) {
+    stop("Cannot standardize ", v, ": pooled baseline SD must be positive.")
+  }
+  # Treat the baseline pooled SD as a fixed standardiser: rescale the
+  # GEE robust confidence limits, matching table2_effect_sizes.R.
+  cohens_d <- fmt_coef_ci(g$estimate / pooled_sd,
+                         g$lo / pooled_sd, g$hi / pooled_sd)
   data.frame(
     Module = spec$module,
     `Exposure information` = spec$exposure,
@@ -116,6 +130,7 @@ rows <- lapply(row_specs, function(spec) {
       fmt_mean_sd(dat[[v]][dat$treatment == 0 & dat$time == 1]),
     `Coefficient (95% CI)` = fmt_coef_ci(g$estimate, g$lo, g$hi),
     `P value` = fmt_p(g$p),
+    `Cohen's d (95% CI)` = cohens_d,
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
@@ -125,4 +140,5 @@ table2 <- bind_rows(rows)
 out_csv <- file.path(out_dir, "Table2.csv")
 write.csv(table2, out_csv, row.names = FALSE)
 
+print(table2, row.names = FALSE, right = FALSE)
 cat("Saved:", out_csv, "\n")
